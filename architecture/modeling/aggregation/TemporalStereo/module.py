@@ -379,7 +379,7 @@ class PredictionHeads(nn.Module):
 
     def regress_offset(self, off):
         # [-1, 1], soften the value space of tanh, like a temperature coefficient in softmax
-        off = torch.tanh(off / 100).clamp(-1, 1)
+        off = torch.tanh(off / 100).clamp(-1, 1) # 将任意范围的偏移量 off，平滑归一化并稳定地限制在 [-1, 1] 区间内
         # [-delta, delta]
         off = off * self.delta
 

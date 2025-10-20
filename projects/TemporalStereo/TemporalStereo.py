@@ -42,7 +42,7 @@ class TemporalStereo(pl.LightningModule):
         self.use_past_cost = cfg.MODEL.USE_PAST_COST
 
         self.backbone = build_backbone(cfg)
-        self.aggregation = build_aggregation(cfg)
+        self.aggregation = build_aggregation(cfg) #architecture/modeling/aggregation/TemporalStereo/TemporalStereo.py
         self.smooth_l1_loss = DispSmoothL1Loss(cfg.MODEL.LOSSES.SMOOTH_L1_LOSS)
         self.warsserstein_distance_loss = WarssersteinDistanceLoss(cfg.MODEL.LOSSES.WARSSERSTEIN_DISTANCE_LOSS)
 

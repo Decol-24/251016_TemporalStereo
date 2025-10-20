@@ -66,13 +66,13 @@ class CoarseAggregation(nn.Module):
             elif isinstance(m, nn.Linear):
                 m.bias.data.zero_()
 
-    def predict_disp(self, cost, disp_sample, off, k=2):
-        topk_cost, indices = torch.topk(cost, k=k, dim=1)
-        prob = torch.softmax(topk_cost, dim=1)
-        topk_disp = torch.gather(disp_sample+off, dim=1, index=indices)
-        disp_map = torch.sum(prob*topk_disp, dim=1, keepdim=True)
+    def predict_disp(self, cost, disp_sample, off, k=2): #视差回归时只考虑tok 2以内的结果
+        topk_cost, indices = torch.topk(cost, k=k, dim=1) #第一个返回值是tok 2以内元素的值，第dim=1 的维度长度变成了k。第二个返回值是这些值的索引
+        prob = torch.softmax(topk_cost, dim=1) #对tok2 以内的值求softmax转换成概率
+        topk_disp = torch.gather(disp_sample+off, dim=1, index=indices) # 把tok 2的结果从原图中取出来
+        disp_map = torch.sum(prob*topk_disp, dim=1, keepdim=True) #相乘得到类似softargmax结果
 
-        return disp_map, topk_disp, topk_cost
+        return disp_map, topk_disp, topk_cost #后两个变量没用
 
     def forward(self, left, right, prev_info:dict):
         B, _, H, W = left.shape
@@ -107,7 +107,7 @@ class CoarseAggregation(nn.Module):
         if self.spatial_fusion:
             init_cost = self.fuse(init_cost)
 
-        final_cost, off = self.pred_heads(init_cost)
+        final_cost, off = self.pred_heads(init_cost) # 预测此阶段最终cost和偏移，都是用3d卷积层预测的
 
         # learn disparity
         disp, memory_sample, memory_volume = self.predict_disp(final_cost, disp_sample, off, k=self.topk)

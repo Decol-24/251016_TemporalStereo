@@ -105,7 +105,7 @@ class TEMPORALSTEREO(nn.Module):
         left_feat, left_feat_8, left_feat_16 = left_feats
         right_feat, right_feat_8, right_feat_16 = right_feats
 
-        # coarse prediction
+        # coarse prediction  粗糙预测
         disp, cost, off, disp_sample, prev_info = self.coarse(left_feat_16, right_feat_16, prev_info)
         low, high = disp - disp_range, disp + disp_range
         disps.append(disp)
@@ -114,7 +114,7 @@ class TEMPORALSTEREO(nn.Module):
         costs.append(cost)
         offs.append(off)
 
-        # fine prediction
+        # fine prediction 微调预测
         disp, cost, off, disp_sample, prev_info = self.fine(left_feat_8, right_feat_8, low, high, prev_info)
         low, high = disp - disp_range, disp + disp_range
         disps.append(disp)
@@ -123,7 +123,7 @@ class TEMPORALSTEREO(nn.Module):
         costs.append(cost)
         offs.append(off)
 
-        # precise
+        # precise 精准
         full_disp, disp, cost, off, disp_sample, prev_info = self.precise(left_feat, right_feat, low, high,
                                                                left_image, right_image, prev_info)
         disps.append(disp)
