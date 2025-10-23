@@ -2,9 +2,9 @@ import torch
 import argparse
 import argparse
 import torch
+import torch.nn as nn
 import torch.backends.cudnn as cudnn
 import time
-
 
 def evaluate_time(Net,imgL,imgR,device,**kwargs):
     import time
@@ -46,25 +46,33 @@ def step_time(args,Net,train_loader,val_loader,**kwargs):
 
     print(Net.t.all_avg_time_str(30))
 
-def flops(Net,device):
-    Net = Net.to(device)
-    bs=1, 
-    c=3, 
-    H=256, 
-    W=512, 
-    t=0,
+def disable_history(net):
+    if hasattr(net, 'with_previous'):
+        net.with_previous = False
+    if hasattr(net, 'frame_idxs'):
+        try: net.frame_idxs = set()
+        except: pass
 
-    batch = make_dummy_batch(bs, c, H, W, t, device)
+def flops(model, device='cpu', bs=1, c=3, H=256, W=512, t=0):
+    from fvcore.nn import FlopCountAnalysis
+
+    model = model.to('cpu').eval()   # 计 FLOPs 用 CPU 最省心
+    disable_history(model)
+
+    batch = make_dummy_batch(bs, c, H, W, t, device='cpu')
     outputs = {}
 
-    from fvcore.nn import FlopCountAnalysis
-    flops = FlopCountAnalysis(Net, (batch, outputs, False, t))   # FLOPs（乘加=2）
-    total_flops = flops.total()
+    # fvcore 会多次调用 forward，所以 outputs 每次都新建更安全
+    class Wrapper(torch.nn.Module):
+        def __init__(self, net): super().__init__(); self.net = net
+        def forward(self): 
+            b = make_dummy_batch(bs, c, H, W, t, device='cpu')
+            return self.net.forward(b, {}, is_train=False, timestamp=t)
 
-    total_params = sum(p.numel() for p in Net.parameters())
-    # print(f"\nFLOPs: {total_flops/1e9:.2f} GFLOPs, parameters: {total_params / 1e6:.2f} M")
-
-    return total_flops,total_params
+    wrapper = Wrapper(model)
+    f = FlopCountAnalysis(wrapper,())  # 我们把 forward 设计成无参
+    total_flops = f.total()
+    return total_flops
 
 def make_dummy_batch(bs=1, c=3, H=256, W=512, t=0, device='cuda'):
     batch = {}
@@ -72,6 +80,19 @@ def make_dummy_batch(bs=1, c=3, H=256, W=512, t=0, device='cuda'):
     batch[('color_aug', t, 'r')] = torch.randn(bs, c, H, W, device=device)
     return batch
 
+class NetWrapper(nn.Module):
+    def __init__(self, net, bs=1, c=3, H=256, W=512, t=0, device='cpu'):
+        super().__init__()
+        self.net = net
+        self.bs, self.c, self.H, self.W, self.t = int(bs), int(c), int(H), int(W), int(t)
+        self.device = torch.device(device)
+
+    def forward(self):
+        # 每次 forward 都新建 batch/outputs，避免 fvcore 多次调用产生副作用
+        batch = make_dummy_batch(self.bs, self.c, self.H, self.W, self.t, self.device)
+        outputs = {}
+        return self.net.forward(batch, outputs, is_train=False, timestamp=self.t)
+    
 @torch.no_grad()
 def benchmark_once(model, H=256, W=512, bs=1, c=3, t=0, warmup=10, iters=50, amp=False):
     device = next(model.parameters()).device
@@ -150,9 +171,9 @@ if __name__ == '__main__':
     cfg = get_cfg(args)
     Net = TemporalStereo(cfg.convert_to_dict())
     
-    benchmark_once(Net, H=512, W=960, bs=1, c=3, t=0, warmup=10, iters=50, amp=False)
+    # benchmark_once(Net, H=512, W=960, bs=1, c=3, t=0, warmup=10, iters=50, amp=False)
 
-    # total_flops,total_params = flops(Net,args.device)
+    total_flops,total_params = flops(Net,args.device)
 
     # print(avg_run_time)
     print(f"\nFLOPs: {total_flops/1e9:.2f} GFLOPs, parameters: {total_params / 1e6:.2f} M")
