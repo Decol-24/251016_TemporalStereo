@@ -67,10 +67,10 @@ class CoarseAggregation(nn.Module):
                 m.bias.data.zero_()
 
     def predict_disp(self, cost, disp_sample, off, k=2): #视差回归时只考虑tok 2以内的结果
-        topk_cost, indices = torch.topk(cost, k=k, dim=1) #第一个返回值是tok 2以内元素的值，第dim=1 的维度长度变成了k。第二个返回值是这些值的索引
+        topk_cost, indices = torch.topk(cost, k=k, dim=1) #第一个返回值是tok 2以内元素的值，[1,2,32,60]。第二个返回值是这些值的索引
         prob = torch.softmax(topk_cost, dim=1) #对tok2 以内的值求softmax转换成概率
-        topk_disp = torch.gather(disp_sample+off, dim=1, index=indices) # 把tok 2的结果从原图中取出来
-        disp_map = torch.sum(prob*topk_disp, dim=1, keepdim=True) #相乘得到类似softargmax结果
+        topk_disp = torch.gather(disp_sample+off, dim=1, index=indices) # 把tok 2的结果从（视差级数列+off）中取出来 [1,2,32,60]
+        disp_map = torch.sum(prob*topk_disp, dim=1, keepdim=True) #相乘得到类似soft-argmax的结果
 
         return disp_map, topk_disp, topk_cost #后两个变量没用
 
@@ -100,17 +100,19 @@ class CoarseAggregation(nn.Module):
         disp_sample = torch.cat([disp_sample, memory_sample], dim=1)
         # [B, C, 2*D, H, W]
         init_cost = torch.cat([init_cost, memory_volume], dim=2)
-        disp_sample, indices = torch.sort(disp_sample, dim=1)
+        disp_sample, indices = torch.sort(disp_sample, dim=1) # disp_sample [1,14,32,60] 是视差级数列
         init_cost = torch.gather(init_cost, dim=2, index=indices.unsqueeze(dim=1).repeat(1, self.C, 1, 1, 1))
         init_cost = init_cost.contiguous()
 
         if self.spatial_fusion:
             init_cost = self.fuse(init_cost)
 
-        final_cost, off = self.pred_heads(init_cost) # 预测此阶段最终cost和偏移，都是用3d卷积层预测的
+        final_cost, off = self.pred_heads(init_cost) 
+        # final_cost [1,14,32,60]  off [1,14,32,60] off的值在[-1,1]
+        # 预测此阶段最终cost和偏移，都是用3d卷积层预测的
 
         # learn disparity
         disp, memory_sample, memory_volume = self.predict_disp(final_cost, disp_sample, off, k=self.topk)
-        disp = self.convex_upsample(left, disp)
+        disp = self.convex_upsample(left, disp) #根据左图上采样
 
         return disp, final_cost, off, disp_sample, prev_info

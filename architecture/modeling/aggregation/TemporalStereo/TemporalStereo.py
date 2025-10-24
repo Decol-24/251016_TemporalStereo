@@ -106,8 +106,8 @@ class TEMPORALSTEREO(nn.Module):
         right_feat, right_feat_8, right_feat_16 = right_feats
 
         # coarse prediction  粗糙预测
-        disp, cost, off, disp_sample, prev_info = self.coarse(left_feat_16, right_feat_16, prev_info)
-        low, high = disp - disp_range, disp + disp_range
+        disp, cost, off, disp_sample, prev_info = self.coarse(left_feat_16, right_feat_16, prev_info) #disp[1,1,64,120] 是回归后的视差图
+        low, high = disp - disp_range, disp + disp_range #视差加上固定值的disp_range得到上限和下限
         disps.append(disp)
         disp_samples.append(disp_sample)
         search_ranges.append({'low': low, 'high': high})

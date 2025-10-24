@@ -191,7 +191,7 @@ _C.VAL.EVAL_DISPARITY_IDS = [0, 1, 2, 3]
 
 def get_parser():
     parser = argparse.ArgumentParser(description="TemporalStereo Training")
-    parser.add_argument("--config-file", default="", metavar="FILE",
+    parser.add_argument("--config-file", default="/home/liqi/Code/251016_TemporalStereo/projects/TemporalStereo/configs/sceneflow.yaml", metavar="FILE",
                         help="path to config file")
     parser.add_argument(
         "opts",

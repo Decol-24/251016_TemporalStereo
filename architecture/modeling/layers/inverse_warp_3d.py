@@ -16,7 +16,10 @@ def inverse_warp_3d(img, disp, padding_mode='zeros', disp_Y=None):
         projected_img:          (Tensor), source image warped to the target image
                                 [B, C, D, H, W]
     """
-
+    #根据视差扭曲图片，填充为0，额外考虑D维度
+    #img通常是右图，disp通常为负值
+    #img [1,128,5,64,120] 128是channel维度
+    #disp [1,5,64,120]
     device = disp.device
     B, D, H, W = disp.shape
 

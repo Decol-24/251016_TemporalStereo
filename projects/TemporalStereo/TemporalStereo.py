@@ -40,7 +40,7 @@ class TemporalStereo(pl.LightningModule):
         self.local_map_size = cfg.MODEL.LOCAL_MAP_SIZE
         self.use_past_cost = cfg.MODEL.USE_PAST_COST
 
-        self.backbone = build_backbone(cfg)
+        self.backbone = build_backbone(cfg) #architecture/modeling/backbone/TemporalStereo.py
         self.aggregation = build_aggregation(cfg) #architecture/modeling/aggregation/TemporalStereo/TemporalStereo.py
         self.smooth_l1_loss = DispSmoothL1Loss(cfg.MODEL.LOSSES.SMOOTH_L1_LOSS)
         self.warsserstein_distance_loss = WarssersteinDistanceLoss(cfg.MODEL.LOSSES.WARSSERSTEIN_DISTANCE_LOSS)
@@ -287,6 +287,8 @@ class TemporalStereo(pl.LightningModule):
         left_image, right_image = batch[('color_aug', timestamp, 'l')], batch[('color_aug', timestamp, 'r')]
 
         left_feats, right_feats, prev_info = self.backbone(left_image, right_image, prev_info)
+        #left_feats[0]:[1,64,128,240] [1]:[1,128,64,120] [2]:[1,256,32,60]
+        # prev_info['memories'] type is list; len is 27; [0]: [2,16,32,60]
 
         if self.with_previous and ((timestamp-1) in self.frame_idxs):
             outs, prev_info = self.update_map(batch, prev_info, timestamp)

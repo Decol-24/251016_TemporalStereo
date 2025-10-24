@@ -4,6 +4,8 @@
 # which allows for non-commercial use only, the full terms of which are made
 # available in the LICENSE file.
 
+# 这样执行 python dist_train.py --config-file ./configs/sceneflow.yaml
+
 import os
 
 import pytorch_lightning as pl

@@ -150,6 +150,26 @@ def benchmark_once(model, H=256, W=512, bs=1, c=3, t=0, warmup=10, iters=50, amp
           f'| bs={bs}, shape=({c},{H},{W}), amp={amp}')
     return times_ms
 
+@torch.no_grad()
+def run_once(model, H=256, W=512, bs=1, c=3, t=0, warmup=10, iters=50, amp=False):
+    device = next(model.parameters()).device
+    model.eval()
+
+    # 避免走到 update_map 分支（省掉前后帧依赖）
+    if hasattr(model, 'with_previous'):
+        model.with_previous = False
+    if hasattr(model, 'frame_idxs'):
+        try:
+            model.frame_idxs = set()
+        except Exception:
+            pass
+
+    batch = make_dummy_batch(bs, c, H, W, t, device)
+    outputs = {}
+    _ = model.forward(batch, outputs, is_train=False, timestamp=t)
+
+    return
+
 if __name__ == '__main__':
 
     # model
@@ -172,8 +192,8 @@ if __name__ == '__main__':
     Net = TemporalStereo(cfg.convert_to_dict())
     
     # benchmark_once(Net, H=512, W=960, bs=1, c=3, t=0, warmup=10, iters=50, amp=False)
+    run_once(Net, H=512, W=960, bs=1, c=3, t=0, warmup=10, iters=50, amp=False)
 
-    total_flops,total_params = flops(Net,args.device)
+    # total_flops,total_params = flops(Net,args.device)
 
-    # print(avg_run_time)
-    print(f"\nFLOPs: {total_flops/1e9:.2f} GFLOPs, parameters: {total_params / 1e6:.2f} M")
+    # print(f"\nFLOPs: {total_flops/1e9:.2f} GFLOPs, parameters: {total_params / 1e6:.2f} M")

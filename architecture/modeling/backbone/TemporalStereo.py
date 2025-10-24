@@ -147,12 +147,12 @@ class TEMPORALSTEREO(Backbone):
         mem = prev_info.get('memories', [])
         B, _, _, _ = l_img.shape
 
-        lr_img = torch.cat([l_img, r_img], dim=0)
+        lr_img = torch.cat([l_img, r_img], dim=0) #左右图在B维度上拼接
 
-        lr_fms, mem = self._forward(lr_img, mem)
+        lr_fms, mem = self._forward(lr_img, mem) #如果没有考虑多帧，那就是常规推理
 
-        l_fms = [fms[:B] for fms in lr_fms]
-        r_fms = [fms[B:] for fms in lr_fms]
+        l_fms = [fms[:B] for fms in lr_fms] #拆分
+        r_fms = [fms[B:] for fms in lr_fms] 
 
         if self.memory_percent > 0:
             prev_info['memories'] = mem
@@ -160,7 +160,6 @@ class TEMPORALSTEREO(Backbone):
             prev_info['memories'] = []
 
         return l_fms, r_fms, prev_info
-
 
 def _block_forward(block, input, memory_percent=0.0, memories=None, memory_idx=0):
     out_memories = []

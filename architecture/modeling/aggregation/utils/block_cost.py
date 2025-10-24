@@ -49,8 +49,8 @@ def block_cost(reference_fm, target_fm, disp_sample, block_cost_scale=3):
         D = disp_sample.shape[1]
 
         # expand D dimension
-        reference_fm = reference_fm.unsqueeze(2).expand(B, C, D, H, W)
-        target_fm = target_fm.unsqueeze(2).expand(B, C, D, H, W)
+        reference_fm = reference_fm.unsqueeze(2).expand(B, C, D, H, W) #左图
+        target_fm = target_fm.unsqueeze(2).expand(B, C, D, H, W) #右图
         #
         # # shift target feature according to disparity samples
         target_fm = inverse_warp_3d(target_fm, -disp_sample, padding_mode='zeros')
